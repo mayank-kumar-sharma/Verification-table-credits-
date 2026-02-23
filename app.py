@@ -249,3 +249,6 @@ methodology_table = st.selectbox(
 
 table_df = build_table(pricing_config[methodology_table])
 st.dataframe(table_df, use_container_width=True)
+# Footer
+st.markdown("---")
+st.markdown("💡 Made with ❤️ by **Mayank Kumar Sharma**")
