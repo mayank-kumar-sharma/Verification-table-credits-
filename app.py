@@ -1,21 +1,44 @@
 import streamlit as st
+import pandas as pd
 
-# -------------------------------
+# ------------------------------------------------
 # Page Config
-# -------------------------------
+# ------------------------------------------------
 st.set_page_config(
     page_title="Verification Fee Calculator",
     layout="centered"
 )
 
-st.title("Verification Fee Calculator")
+# ------------------------------------------------
+# Custom Styling (Premium Minimal UI)
+# ------------------------------------------------
+st.markdown("""
+<style>
+.main-title {
+    font-size: 36px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+.big-fee {
+    font-size: 52px;
+    font-weight: 700;
+    margin-top: 10px;
+}
+.section-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-top: 50px;
+    margin-bottom: 15px;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# -------------------------------
-# Pricing Configuration
-# Each methodology has its own tier structure
+st.markdown('<div class="main-title">Verification Fee Calculator</div>', unsafe_allow_html=True)
+
+# ------------------------------------------------
+# Pricing Configuration (Fully Separate)
 # Format: (lower_bound, upper_bound, price_per_tonne)
-# upper_bound = None means unlimited
-# -------------------------------
+# ------------------------------------------------
 
 pricing_config = {
 
@@ -148,9 +171,9 @@ pricing_config = {
     ],
 }
 
-# -------------------------------
+# ------------------------------------------------
 # Helper Functions
-# -------------------------------
+# ------------------------------------------------
 
 def format_currency(value):
     return "${:,.0f}".format(value)
@@ -164,16 +187,25 @@ def get_price_from_tiers(cumulative, tiers):
             return lower, upper, price
     return tiers[0]
 
-def format_tier_range(lower, upper):
-    if upper is None:
-        return f"{lower:,}+"
-    return f"{lower:,} - {upper:,}"
+def build_table(tiers, applied_lower=None, applied_upper=None):
+    rows = []
+    for lower, upper, price in tiers:
+        if upper is None:
+            tier_label = f"{lower:,}+"
+        else:
+            tier_label = f"{lower:,} - {upper:,}"
+        rows.append({
+            "Annual Certificates Issued": tier_label,
+            "Verification Fee per Tonne ($)": f"${price:.2f}"
+        })
+    df = pd.DataFrame(rows)
+    return df
 
-# -------------------------------
-# Inputs
-# -------------------------------
+# ------------------------------------------------
+# CALCULATOR SECTION
+# ------------------------------------------------
 
-methodology = st.selectbox(
+methodology_calc = st.selectbox(
     "Methodology",
     list(pricing_config.keys()),
     index=0
@@ -193,42 +225,27 @@ expected_year = st.number_input(
     step=1000
 )
 
-# -------------------------------
-# Calculation
-# -------------------------------
-
 if expected_year > 0:
-
     cumulative = previous_year + expected_year
-    tiers = pricing_config[methodology]
-
+    tiers = pricing_config[methodology_calc]
     lower, upper, price_per_tonne = get_price_from_tiers(cumulative, tiers)
-
     total_fee = expected_year * price_per_tonne
 
-    st.divider()
+    st.markdown('<div class="big-fee">{}</div>'.format(format_currency(total_fee)), unsafe_allow_html=True)
+    st.write(f"Verification fee per tonne: ${price_per_tonne:.2f}")
 
-    st.subheader("Total Verification Fee")
-    st.markdown(
-        f"<h1 style='font-size:42px;'>{format_currency(total_fee)}</h1>",
-        unsafe_allow_html=True
-    )
+# ------------------------------------------------
+# PERMANENT PRICING TABLE SECTION
+# ------------------------------------------------
 
-    with st.expander("Show breakdown"):
+st.markdown('<div class="section-title">Verification Fee Table</div>', unsafe_allow_html=True)
 
-        st.markdown(f"**{methodology}**")
+methodology_table = st.selectbox(
+    "Select methodology to view pricing",
+    list(pricing_config.keys()),
+    index=0,
+    key="table_selector"
+)
 
-        st.write("### Verification fee table")
-
-        for l, u, p in tiers:
-            tier_label = format_tier_range(l, u)
-            price_label = f"${p:.2f}"
-
-            if l == lower and u == upper:
-                st.markdown(f"**{tier_label} (applied)** — {price_label}")
-            else:
-                st.write(f"{tier_label} — {price_label}")
-
-        st.divider()
-        st.write(f"**Verification fee per tonne:** ${price_per_tonne:.2f}")
-        st.write(f"**Total verification fee:** {format_currency(total_fee)}")
+table_df = build_table(pricing_config[methodology_table])
+st.dataframe(table_df, use_container_width=True)
