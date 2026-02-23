@@ -36,8 +36,7 @@ st.markdown("""
 st.markdown('<div class="main-title">Verification Fee Calculator</div>', unsafe_allow_html=True)
 
 # ------------------------------------------------
-# Pricing Configuration (Fully Separate)
-# Format: (lower_bound, upper_bound, price_per_tonne)
+# Pricing Configuration
 # ------------------------------------------------
 
 pricing_config = {
@@ -178,16 +177,16 @@ pricing_config = {
 def format_currency(value):
     return "${:,.0f}".format(value)
 
-def get_price_from_tiers(cumulative, tiers):
+def get_price_from_tiers(volume, tiers):
     for lower, upper, price in tiers:
         if upper is None:
-            if cumulative >= lower:
+            if volume >= lower:
                 return lower, upper, price
-        elif lower <= cumulative < upper:
+        elif lower <= volume < upper:
             return lower, upper, price
     return tiers[0]
 
-def build_table(tiers, applied_lower=None, applied_upper=None):
+def build_table(tiers):
     rows = []
     for lower, upper, price in tiers:
         if upper is None:
@@ -198,8 +197,7 @@ def build_table(tiers, applied_lower=None, applied_upper=None):
             "Annual Certificates Issued": tier_label,
             "Verification Fee per Tonne ($)": f"${price:.2f}"
         })
-    df = pd.DataFrame(rows)
-    return df
+    return pd.DataFrame(rows)
 
 # ------------------------------------------------
 # CALCULATOR SECTION
@@ -226,12 +224,17 @@ expected_year = st.number_input(
 )
 
 if expected_year > 0:
-    cumulative = previous_year + expected_year
     tiers = pricing_config[methodology_calc]
-    lower, upper, price_per_tonne = get_price_from_tiers(cumulative, tiers)
+
+    # ✅ Tier based ONLY on current year expected issuance
+    lower, upper, price_per_tonne = get_price_from_tiers(expected_year, tiers)
+
     total_fee = expected_year * price_per_tonne
 
-    st.markdown('<div class="big-fee">{}</div>'.format(format_currency(total_fee)), unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="big-fee">{format_currency(total_fee)}</div>',
+        unsafe_allow_html=True
+    )
     st.write(f"Verification fee per tonne: ${price_per_tonne:.2f}")
 
 # ------------------------------------------------
@@ -249,6 +252,7 @@ methodology_table = st.selectbox(
 
 table_df = build_table(pricing_config[methodology_table])
 st.dataframe(table_df, use_container_width=True)
+
 # Footer
 st.markdown("---")
 st.markdown("💡 Made with ❤️ by **Mayank Kumar Sharma**")
