@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 # ------------------------------------------------
 # Page Config
@@ -22,6 +23,12 @@ st.markdown("""
     font-size: 52px;
     font-weight: 700;
     margin-top: 10px;
+}
+.section-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-top: 50px;
+    margin-bottom: 15px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -82,6 +89,20 @@ if expected_year > 0:
     )
 
     st.write(f"Verification fee per tonne: ₹{price_per_tonne}")
+
+# ------------------------------------------------
+# PRICING TABLE SECTION
+# ------------------------------------------------
+st.markdown('<div class="section-title">Standard Verification Pricing (Flat Rate)</div>', unsafe_allow_html=True)
+
+table_data = {
+    "Methodology": list(pricing_config.keys()),
+    "Price (₹ per tonne)": [f"₹{price}" for price in pricing_config.values()]
+}
+
+df = pd.DataFrame(table_data)
+
+st.dataframe(df, use_container_width=True)
 
 # ------------------------------------------------
 # Footer
